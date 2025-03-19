@@ -1,17 +1,29 @@
-import express, { Router, Request, Response } from 'express';
+import express from 'express';
 import fileUpload, { UploadedFile } from 'express-fileupload';
-import { TBooking } from '../models/TBooking';
-import { TUser } from '../models/TUser';
+import { Request, Response } from 'express';
+
 import pool from '../connection';
 import path from 'path';
+import { createEvent, editEvent, deleteEvent } from '../services/eventService';
 
-const router = Router();
+const router = express.Router();
 
-router.use(fileUpload());
+router.use(fileUpload({
+    limits: { fileSize: 50 * 1024 * 1024 },
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}));
 
 router.post('/createUserAndBooking', async (req, res) => {
-    console.log('Request body:', req.body); // Add logging
-    const { name, email, phone, eventId, eventTitle }: { name: string; email: string; phone: string; eventId: string; eventTitle: string } = req.body;
+    
+    const { 
+        firstName, 
+        lastName, 
+        email, 
+        phone, 
+        eventId, 
+        eventTitle 
+    } = req.body;
 
     const connection = await pool.getConnection();
     try {
@@ -26,21 +38,21 @@ router.post('/createUserAndBooking', async (req, res) => {
 
         // Create user
         const [userResult] = await connection.query(
-            'INSERT INTO users (name, email, phone) VALUES (?, ?, ?)',
-            [name, email, phone]
+            'INSERT INTO users (firstName, lastName, email, phone) VALUES (?, ?, ?, ?)',
+            [firstName, lastName, email, phone]
         );
         const userId = (userResult as any).insertId;
 
         // Create booking
         await connection.query(
-            'INSERT INTO Bookings (userId, eventId, date) VALUES (?, ?, ?)',
-            [userId, eventId, eventDate]
+            'INSERT INTO Bookings (userId, eventId, eventTitle, date) VALUES (?, ?, ?, ?)',
+            [userId, eventId, eventTitle, eventDate]
         );
 
         await connection.commit();
         res.status(201).send({ message: 'User and booking created successfully' });
     } catch (error) {
-        console.error('Error:', error); // Add logging
+        console.error('Error:', error);
         await connection.rollback();
         res.status(500).send({ error: 'Error creating user and booking' });
     } finally {
@@ -52,14 +64,20 @@ router.get('/getBookings', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         const [results] = await connection.query(
-            `SELECT users.name, users.email, users.phone, events.title, events.date
+            `SELECT 
+                users.firstName,
+                users.lastName,
+                users.email,
+                users.phone,
+                Bookings.eventTitle,
+                events.date
             FROM Bookings
             JOIN users ON Bookings.userId = users.id
             JOIN events ON Bookings.eventId = events.id`
         );
         res.status(200).send(results);
     } catch (error) {
-        console.error('Error:', error); // Add logging
+        console.error('Error:', error);
         res.status(500).send({ error: 'Error retrieving bookings' });
     } finally {
         connection.release();
@@ -71,7 +89,13 @@ router.get('/getBookingByUser/:useremail', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         const [results] = await connection.query(
-            `SELECT users.name, users.email, users.phone, events.title, events.date
+            `SELECT 
+                users.firstName,
+                users.lastName,
+                users.email,
+                users.phone,
+                Bookings.eventTitle,
+                events.date
             FROM Bookings
             JOIN users ON Bookings.userId = users.id
             JOIN events ON Bookings.eventId = events.id
@@ -80,7 +104,7 @@ router.get('/getBookingByUser/:useremail', async (req, res) => {
         );
         res.status(200).send(results);
     } catch (error) {
-        console.error('Error:', error); // Add logging
+        console.error('Error:', error);
         res.status(500).send({ error: 'Error retrieving bookings' });
     } finally {
         connection.release();
@@ -89,35 +113,42 @@ router.get('/getBookingByUser/:useremail', async (req, res) => {
 
 router.put('/editBooking/:bookingId', async (req, res) => {
     const { bookingId } = req.params;
-    const { name, email, phone, title, date }: { name: string; email: string; phone: string; title: string; date: string } = req.body;
+    const { 
+        firstName, 
+        lastName, 
+        email, 
+        phone, 
+        eventId, 
+        eventTitle 
+    } = req.body;
 
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
+        // Get event date
+        const [eventResult] = await connection.query(
+            'SELECT date FROM events WHERE id = ?',
+            [eventId]
+        );
+        const eventDate = (eventResult as any)[0].date;
+
         // Update user details
         await connection.query(
-            'UPDATE users SET name = ?, email = ?, phone = ? WHERE id = (SELECT userId FROM Bookings WHERE id = ?)',
-            [name, email, phone, bookingId]
+            'UPDATE users SET firstName = ?, lastName = ?, email = ?, phone = ? WHERE id = (SELECT userId FROM Bookings WHERE id = ?)',
+            [firstName, lastName, email, phone, bookingId]
         );
-
-        // Update event details
-        const [eventResult] = await connection.query(
-            'SELECT id FROM events WHERE title = ?',
-            [title]
-        );
-        const eventId = (eventResult as any)[0].id;
 
         // Update booking details
         await connection.query(
-            'UPDATE Bookings SET eventId = ?, date = ? WHERE id = ?',
-            [eventId, date, bookingId]
+            'UPDATE Bookings SET eventId = ?, eventTitle = ?, date = ? WHERE id = ?',
+            [eventId, eventTitle, eventDate, bookingId]
         );
 
         await connection.commit();
         res.status(200).send({ message: 'Booking updated successfully' });
     } catch (error) {
-        console.error('Error:', error); // Add logging
+        console.error('Error:', error);
         await connection.rollback();
         res.status(500).send({ error: 'Error updating booking' });
     } finally {
@@ -142,7 +173,6 @@ router.delete('/deleteBooking/:bookingId', async (req, res) => {
         connection.release();
     }
 });
-
 
 router.get('/getEvents', async (req, res) => {
     const connection = await pool.getConnection();
@@ -174,6 +204,50 @@ router.get('/getEventById/:eventId', async (req, res) => {
     } finally {
         connection.release();
     }
+});
+
+router.post('/createEvent', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const eventId = await createEvent(req.files?.image as UploadedFile, req.body);
+        
+        res.status(201).json({
+            success: true,
+            message: 'Event created successfully',
+            eventId
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send('Error creating event');
+    }
+});
+
+router.put('/editEvent/:eventId', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const eventData = {
+            ...req.body,
+            image: req.files?.image as UploadedFile,
+            currentImageUrl: req.body.imageUrl
+        };
+        
+        const eventId = await editEvent(parseInt(req.params.eventId), eventData);
+        res.status(200).json({
+            success: true,
+            message: 'Event updated successfully',
+            eventId
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send('Error updating event');
+    }
+});
+
+router.delete('/deleteEvent/:eventId', async (req: Request, res: Response): Promise<void> => {
+    const { eventId } = req.params;
+    await deleteEvent(parseInt(eventId));
+    res.status(200).json({
+        success: true,
+        message: 'Event deleted successfully'
+    });
 });
 
 export default router;

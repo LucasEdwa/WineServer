@@ -12,4 +12,8 @@ build/
 *.log
 
 # OS files
-.DS_Store 
+.DS_Store
+
+# Optional: Ignore uploaded images but keep the directory
+src/images/*
+!src/images/.gitkeep 
