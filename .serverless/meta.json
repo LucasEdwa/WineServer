@@ -1,0 +1,116 @@
+{
+  "/Users/lucaseduardo/wineServer/serverless.yml": {
+    "versionFramework": "4.9.0",
+    "servicePath": "/Users/lucaseduardo/wineServer/serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "wine-events-api",
+      "provider": {
+        "name": "aws",
+        "runtime": "nodejs18.x",
+        "region": "us-east-1",
+        "environment": {
+          "DB_HOST": "127.0.0.1",
+          "DB_USERNAME": "root",
+          "DB_PASSWORD": "<REDACTED>",
+          "DB_DATABASE": "wine"
+        },
+        "httpApi": {
+          "cors": true
+        },
+        "stage": "dev",
+        "versionFunctions": true
+      },
+      "package": {
+        "patterns": [
+          "!**/*",
+          "dist/**",
+          "node_modules/**",
+          "package.json",
+          "package-lock.json"
+        ],
+        "artifactsS3KeyDirname": "serverless/wine-events-api/dev/code-artifacts"
+      },
+      "functions": {
+        "api": {
+          "handler": "dist/lambda.handler",
+          "memorySize": 512,
+          "timeout": 30,
+          "vpc": {
+            "securityGroupIds": [
+              "sg-xxxxxxxx"
+            ],
+            "subnetIds": [
+              "subnet-xxxxxxxx"
+            ]
+          },
+          "events": [
+            {
+              "httpApi": {
+                "path": "/api/{proxy+}",
+                "method": "*"
+              }
+            },
+            {
+              "httpApi": {
+                "path": "/images/{proxy+}",
+                "method": "GET"
+              }
+            },
+            {
+              "httpApi": {
+                "path": "/api-docs",
+                "method": "GET"
+              }
+            }
+          ],
+          "name": "wine-events-api-dev-api"
+        }
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs18.x",
+      "region": "us-east-1",
+      "environment": {
+        "DB_HOST": "127.0.0.1",
+        "DB_USERNAME": "root",
+        "DB_PASSWORD": "<REDACTED>",
+        "DB_DATABASE": "wine"
+      },
+      "httpApi": {
+        "cors": true
+      },
+      "stage": "dev",
+      "versionFunctions": true
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "error": {
+      "message": "Access denied when storing the parameter \"/serverless-framework/deployment/s3-bucket\". Please check your permissions and try again. You have the following options:\n• Ensure you have permission to create SSM and S3 resources.\n• Use the \"provider.deploymentBucket\" field to specify an existing S3 bucket.\n• Manually create the S3 bucket and SSM parameter.\n\nFor more details, please refer to the documentation: https://www.serverless.com/framework/docs/guides/deployment-bucket\n\nOriginal error: An error occurred while fetching the SSM parameter \"/serverless-framework/deployment/s3-bucket\": User: arn:aws:iam::060795915282:user/lucas is not authorized to perform: ssm:GetParameter on resource: arn:aws:ssm:us-east-1:060795915282:parameter/serverless-framework/deployment/s3-bucket because no identity-based policy allows the ssm:GetParameter action",
+      "code": "DEPLOYMENT_BUCKET_INSUFFICIENT_PERMISSIONS"
+    },
+    "serviceRawFile": "service: wine-events-api\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  region: us-east-1\n  environment:\n    DB_HOST: ${env:DB_HOST}\n    DB_USERNAME: ${env:DB_USERNAME}\n    DB_PASSWORD: ${env:DB_PASSWORD}\n    DB_DATABASE: ${env:DB_DATABASE}\n  httpApi:\n    cors: true\n\npackage:\n  patterns:\n    - '!**/*'\n    - 'dist/**'\n    - 'node_modules/**'\n    - 'package.json'\n    - 'package-lock.json'\n\nfunctions:\n  api:\n    handler: dist/lambda.handler\n    memorySize: 512\n    timeout: 30\n    vpc:\n      securityGroupIds:\n        - sg-xxxxxxxx\n      subnetIds:\n        - subnet-xxxxxxxx\n    events:\n      - httpApi:\n          path: /api/{proxy+}\n          method: '*'\n      - httpApi:\n          path: /images/{proxy+}\n          method: GET\n      - httpApi:\n          path: /api-docs\n          method: GET\n\n# plugins:  # Comment out for production deployment\n#   - serverless-offline\n#   - serverless-dotenv-plugin ",
+    "command": [
+      "deploy"
+    ],
+    "options": {},
+    "orgId": "9167c675-95d4-41a4-9ce0-b922e3b789c2",
+    "orgName": "studentbase",
+    "userId": "KLjtyDR2fp5k1jHnLf",
+    "userName": "studentbase",
+    "serviceProviderAwsAccountId": "060795915282",
+    "serviceProviderAwsCfStackId": null,
+    "serviceProviderAwsCfStackCreated": null,
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": null,
+    "serviceProviderAwsCfStackOutputs": null
+  }
+}

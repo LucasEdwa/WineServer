@@ -8,7 +8,7 @@ import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './swagger';
 
-const app = express();
+export const app = express();
 
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:8888'], // Add MAMP's port

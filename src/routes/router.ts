@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import pool from '../connection';
 import path from 'path';
 import { createEvent, editEvent, deleteEvent } from '../services/eventService';
+import { TBooking , TEvent ,Error, TUser } from '../models/types';
 
 const router = express.Router();
 
@@ -14,16 +15,12 @@ router.use(fileUpload({
     tempFileDir: '/tmp/'
 }));
 
-router.post('/createUserAndBooking', async (req, res) => {
-    
+router.post('/createUserAndBooking', async (req: Request, res: Response<{ message: string } | Error>): Promise<void> => {
     const { 
-        firstName, 
-        lastName, 
-        email, 
-        phone, 
         eventId, 
-        eventTitle 
-    } = req.body;
+        eventTitle, 
+        ...userProps 
+    }: TUser & TBooking & { eventId: number; eventTitle: string } = req.body;
 
     const connection = await pool.getConnection();
     try {
@@ -39,14 +36,21 @@ router.post('/createUserAndBooking', async (req, res) => {
         // Create user
         const [userResult] = await connection.query(
             'INSERT INTO users (firstName, lastName, email, phone) VALUES (?, ?, ?, ?)',
-            [firstName, lastName, email, phone]
+            [userProps.firstName, userProps.lastName, userProps.email, userProps.phone]
         );
         const userId = (userResult as any).insertId;
 
         // Create booking
+        const bookingProps: TBooking = {
+            id: 0, // Placeholder, as the database will generate the ID
+            userId,
+            eventId,
+            eventTitle,
+            date: eventDate
+        };
         await connection.query(
             'INSERT INTO Bookings (userId, eventId, eventTitle, date) VALUES (?, ?, ?, ?)',
-            [userId, eventId, eventTitle, eventDate]
+            [bookingProps.userId, bookingProps.eventId, bookingProps.eventTitle, bookingProps.date]
         );
 
         await connection.commit();
@@ -60,7 +64,7 @@ router.post('/createUserAndBooking', async (req, res) => {
     }
 });
 
-router.get('/getBookings', async (req, res) => {
+router.get('/getBookings', async (req: Request, res: Response<TBooking[] | Error>): Promise<void> => {
     const connection = await pool.getConnection();
     try {
         const [results] = await connection.query(
@@ -75,7 +79,7 @@ router.get('/getBookings', async (req, res) => {
             JOIN users ON Bookings.userId = users.id
             JOIN events ON Bookings.eventId = events.id`
         );
-        res.status(200).send(results);
+        res.status(200).send(results as TBooking[]);
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send({ error: 'Error retrieving bookings' });
@@ -84,7 +88,7 @@ router.get('/getBookings', async (req, res) => {
     }
 });
 
-router.get('/getBookingByUser/:useremail', async (req, res) => {
+router.get('/getBookingByUser/:useremail', async (req: Request, res: Response<TBooking[] | Error>): Promise<void> => {
     const { useremail } = req.params;
     const connection = await pool.getConnection();
     try {
@@ -102,7 +106,7 @@ router.get('/getBookingByUser/:useremail', async (req, res) => {
             WHERE users.email = ?`,
             [useremail]
         );
-        res.status(200).send(results);
+        res.status(200).send(results as TBooking[]);
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send({ error: 'Error retrieving bookings' });
@@ -111,7 +115,7 @@ router.get('/getBookingByUser/:useremail', async (req, res) => {
     }
 });
 
-router.put('/editBooking/:bookingId', async (req, res) => {
+router.put('/editBooking/:bookingId', async (req: Request, res: Response<{ message: string } | Error>): Promise<void> => {
     const { bookingId } = req.params;
     const { 
         firstName, 
@@ -156,7 +160,7 @@ router.put('/editBooking/:bookingId', async (req, res) => {
     }
 });
 
-router.delete('/deleteBooking/:bookingId', async (req, res) => {
+router.delete('/deleteBooking/:bookingId', async (req: Request, res: Response<{ message: string } | Error>): Promise<void> => {
     const { bookingId } = req.params;
 
     const connection = await pool.getConnection();
@@ -174,13 +178,13 @@ router.delete('/deleteBooking/:bookingId', async (req, res) => {
     }
 });
 
-router.get('/getEvents', async (req, res) => {
+router.get('/getEvents', async (req: Request, res: Response<TEvent[] | Error>): Promise<void> => {
     const connection = await pool.getConnection();
     try {
         const [results] = await connection.query(
             'SELECT title, date, startTime, endTime, location FROM events'
         );
-        res.status(200).send(results);
+        res.status(200).send(results as TEvent[]);
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send({ error: 'Error retrieving events' });
@@ -189,7 +193,7 @@ router.get('/getEvents', async (req, res) => {
     }
 });
 
-router.get('/getEventById/:eventId', async (req, res) => {
+router.get('/getEventById/:eventId', async (req: Request, res: Response<TEvent[] | Error>): Promise<void> => {
     const { eventId } = req.params;
     const connection = await pool.getConnection();
     try {
@@ -197,7 +201,7 @@ router.get('/getEventById/:eventId', async (req, res) => {
             'SELECT * FROM events WHERE id = ?',
             [eventId]
         );
-        res.status(200).send(results);
+        res.status(200).send(results as TEvent[]);
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send({ error: 'Error retrieving event' });
@@ -206,7 +210,7 @@ router.get('/getEventById/:eventId', async (req, res) => {
     }
 });
 
-router.post('/createEvent', async (req: Request, res: Response): Promise<void> => {
+router.post('/createEvent', async (req: Request, res: Response<{ success: boolean; message: string; eventId: number } | Error>): Promise<void> => {
     try {
         const eventId = await createEvent(req.files?.image as UploadedFile, req.body);
         
@@ -217,11 +221,11 @@ router.post('/createEvent', async (req: Request, res: Response): Promise<void> =
         });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).send('Error creating event');
+        res.status(500).send({ error: 'Error creating event' });
     }
 });
 
-router.put('/editEvent/:eventId', async (req: Request, res: Response): Promise<void> => {
+router.put('/editEvent/:eventId', async (req: Request, res: Response<{ success: boolean; message: string; eventId: number } | Error>): Promise<void> => {
     try {
         const eventData = {
             ...req.body,
@@ -237,17 +241,22 @@ router.put('/editEvent/:eventId', async (req: Request, res: Response): Promise<v
         });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).send('Error updating event');
+        res.status(500).send({ error: 'Error updating event' });
     }
 });
 
-router.delete('/deleteEvent/:eventId', async (req: Request, res: Response): Promise<void> => {
+router.delete('/deleteEvent/:eventId', async (req: Request, res: Response<{ success: boolean; message: string } | Error>): Promise<void> => {
     const { eventId } = req.params;
-    await deleteEvent(parseInt(eventId));
-    res.status(200).json({
-        success: true,
-        message: 'Event deleted successfully'
-    });
+    try {
+        await deleteEvent(parseInt(eventId));
+        res.status(200).json({
+            success: true,
+            message: 'Event deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send({ error: 'Error deleting event' });
+    }
 });
 
 export default router;
