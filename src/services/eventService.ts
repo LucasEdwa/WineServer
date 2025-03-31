@@ -17,9 +17,9 @@ export async function createEvent(image: UploadedFile, eventData: {
     try {
         await connection.beginTransaction();
 
-        // Save image
-        const uploadPath = path.join(__dirname, '../../images/', image.name);
-        const imageUrl = `/images/${image.name}`;
+        // Save image to wineimages folder
+        const uploadPath = path.join(__dirname, '../../images/wineimages/', image.name);
+        const imageUrl = `/images/wineimages/${image.name}`;
         await image.mv(uploadPath);
 
         // Insert event
@@ -66,10 +66,9 @@ export async function editEvent(eventId: number, eventData: any) {
         let imageUrl = eventData.currentImageUrl;
         if (eventData.image) {
             const image = eventData.image as UploadedFile;
-            // Use the same path pattern as createEvent
-            const uploadPath = path.join(__dirname, '../../images/', image.name);
+            const uploadPath = path.join(__dirname, '../../images/wineimages/', image.name);
             await image.mv(uploadPath);
-            imageUrl = `/images/${image.name}`;
+            imageUrl = `/images/wineimages/${image.name}`;
             
             console.log('Image uploaded to:', uploadPath);
         }

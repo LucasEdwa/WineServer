@@ -20,15 +20,19 @@ app.use(cors({
 app.use(express.json());
 app.use('/api', Router);
 
-// Update the images path to be absolute
-const imagesPath = path.join(__dirname, './images');
-console.log('Serving images from:', imagesPath);
-
-// Serve images with proper headers
+// Serve event images
+const eventImagesPath = path.join(__dirname, './images');
 app.use('/images', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*'); // Allow images to be accessed from anywhere
     next();
-}, express.static(imagesPath));
+}, express.static(eventImagesPath));
+
+// Serve wine images
+const wineImagesPath = path.join(__dirname, './images/wineimages');
+app.use('/images/wineimages', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*'); // Allow images to be accessed from anywhere
+    next();
+}, express.static(wineImagesPath));
 
 // Add Swagger documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));

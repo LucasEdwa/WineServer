@@ -6,18 +6,12 @@ const eventDocs = {
                 in: 'path',
                 name: 'eventId',
                 required: true,
-                schema: {
-                    type: 'integer'
-                },
+                schema: { type: 'integer' },
                 description: 'ID of the event'
             }],
             responses: {
-                200: {
-                    description: 'Event details'
-                },
-                500: {
-                    description: 'Server error'
-                }
+                200: { description: 'Event details retrieved successfully' },
+                500: { description: 'Server error' }
             }
         }
     },
@@ -31,50 +25,25 @@ const eventDocs = {
                         schema: {
                             type: 'object',
                             properties: {
-                                image: {
-                                    type: 'string',
-                                    format: 'binary'
-                                },
-                                title: {
-                                    type: 'string'
-                                },
-                                description: {
-                                    type: 'string'
-                                },
-                                date: {
-                                    type: 'string'
-                                },
-                                startTime: {
-                                    type: 'string'
-                                },
-                                endTime: {
-                                    type: 'string'
-                                },
-                                location: {
-                                    type: 'string'
-                                },
-                                capacity: {
-                                    type: 'number'
-                                },
-                                price: {
-                                    type: 'number'
-                                },
-                                isPrivate: {
-                                    type: 'boolean'
-                                },
-                              
-                            }
+                                image: { type: 'string', format: 'binary' },
+                                title: { type: 'string' },
+                                description: { type: 'string' },
+                                date: { type: 'string', format: 'date' },
+                                startTime: { type: 'string', format: 'time' },
+                                endTime: { type: 'string', format: 'time' },
+                                location: { type: 'string' },
+                                capacity: { type: 'number' },
+                                price: { type: 'number' },
+                                isPrivate: { type: 'boolean' }
+                            },
+                            required: ['image', 'title', 'description', 'date', 'startTime', 'endTime', 'location', 'capacity', 'price']
                         }
                     }
                 }
             },
             responses: {
-                201: {
-                    description: 'Event created successfully'
-                },
-                500: {
-                    description: 'Server error'
-                }
+                201: { description: 'Event created successfully' },
+                500: { description: 'Server error' }
             }
         }
     },
@@ -85,9 +54,7 @@ const eventDocs = {
                 in: 'path',
                 name: 'eventId',
                 required: true,
-                schema: {
-                    type: 'integer'
-                },
+                schema: { type: 'integer' },
                 description: 'ID of the event'
             }],
             requestBody: {
@@ -97,49 +64,25 @@ const eventDocs = {
                         schema: {
                             type: 'object',
                             properties: {
-                                image: {
-                                    type: 'string',
-                                    format: 'binary'
-                                },
-                                title: {
-                                    type: 'string'
-                                },
-                                description: {
-                                    type: 'string'
-                                },
-                                date: {
-                                    type: 'string'
-                                },
-                                startTime: {
-                                    type: 'string'
-                                },
-                                endTime: {
-                                    type: 'string'
-                                },
-                                location: {
-                                    type: 'string'
-                                },
-                                capacity: {
-                                    type: 'number'
-                                },
-                                price: {
-                                    type: 'number'
-                                },
-                                isPrivate: {
-                                    type: 'boolean'
-                                }
-                            }
+                                image: { type: 'string', format: 'binary' },
+                                title: { type: 'string' },
+                                description: { type: 'string' },
+                                date: { type: 'string', format: 'date' },
+                                startTime: { type: 'string', format: 'time' },
+                                endTime: { type: 'string', format: 'time' },
+                                location: { type: 'string' },
+                                capacity: { type: 'number' },
+                                price: { type: 'number' },
+                                isPrivate: { type: 'boolean' }
+                            },
+                            required: ['title', 'description', 'date', 'startTime', 'endTime', 'location', 'capacity', 'price']
                         }
                     }
-                },
-                responses: {    
-                    200: {
-                        description: 'Event updated successfully'
-                    },
-                    500: {
-                        description: 'Server error'
-                    }
                 }
+            },
+            responses: {
+                200: { description: 'Event updated successfully' },
+                500: { description: 'Server error' }
             }
         }
     },
@@ -148,23 +91,17 @@ const eventDocs = {
             summary: 'Delete an event',
             parameters: [{
                 in: 'path',
-                name: 'eventId',    
+                name: 'eventId',
                 required: true,
-                schema: {
-                    type: 'integer'
-                },
+                schema: { type: 'integer' },
                 description: 'ID of the event'
             }],
             responses: {
-                200: {
-                    description: 'Event deleted successfully'
-                },
-                500: {
-                    description: 'Server error'
-                }
+                200: { description: 'Event deleted successfully' },
+                500: { description: 'Server error' }
             }
         }
     }
-}
+};
 
-export default eventDocs; 
+export default eventDocs;
