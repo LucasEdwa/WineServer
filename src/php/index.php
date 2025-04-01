@@ -8,16 +8,23 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+include_once 'navbar.php'; // Include navbar.php for the navbar
+renderNavbar(); // Render the navbar
+
 // Get all events
 $sql = "SELECT * FROM events";
 $result = $conn->query($sql);
+
+if (!$result) {
+    die('Query failed: ' . $conn->error);
+}
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
     <title>Wine Events</title>
-    <link rel="stylesheet" href="indexStyle.css">
+    <link rel="stylesheet" href="indexStyles.css"> 
     <script>
         let showActive = false; // Track the toggle state
 
@@ -82,6 +89,7 @@ $result = $conn->query($sql);
                 </div>
                 <div class="event-actions">
                     <a href="edit-event.php?id=<?php echo $event['id']; ?>" class="edit-button">Edit Event</a>
+                    <a href="get-event-by-id.php?id=<?php echo $event['id']; ?>" class="view-button">View Event</a>
                 </div>
             </div>
         <?php endwhile; ?>
@@ -89,4 +97,7 @@ $result = $conn->query($sql);
 </body>
 </html>
 
-<?php $conn->close(); ?>
+<?php
+// Close the connection at the end of the script
+$conn->close();
+?>

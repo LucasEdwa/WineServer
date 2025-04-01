@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isPrivate = isset($_POST['isPrivate']) ? 1 : 0;
 
     // Insert event
-    $stmt = $conn->prepare("INSERT INTO events (title, description, imageUrl, date, startTime, endTime, location, capacity, price, currentAttendees, wineSelection, activities, isPrivate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, '[]', '[]', ?)");
+    $stmt = $conn->prepare("INSERT INTO events (title, description, imageUrl, date, startTime, endTime, location, capacity, price, isPrivate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("sssssssidi", 
         $title,
         $description,
@@ -108,22 +108,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Insert activities
         if (!empty($_POST['activities'])) {
             $activities = json_decode($_POST['activities'], true);
-            $activityStmt = $conn->prepare("INSERT INTO activities (eventId, duration, difficulty, materials) VALUES (?, ?, ?, ?)");
             foreach ($activities as $activity) {
-                $materialsJson = json_encode($activity['materials']);
-                $activityStmt->bind_param("iiss", 
-                    $eventId,
-                    $activity['duration'],
-                    $activity['difficulty'],
-                    $materialsJson
+                $activityTitle = $activity['title'];
+                $activityDuration = intval($activity['duration']);
+                $activityDifficulty = $activity['difficulty'];
+        
+                $stmt = $conn->prepare("INSERT INTO activities (eventId, title, duration, difficulty) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param(
+                    "isis",
+                    $eventId, // Correctly use $eventId
+                    $activityTitle,
+                    $activityDuration,
+                    $activityDifficulty
                 );
-                $activityStmt->execute();
+                $stmt->execute();
+                $activityId = $stmt->insert_id;
+        
+                // Ensure materials is an array
+                $materials = is_array($activity['materials']) ? $activity['materials'] : [];
+                foreach ($materials as $material) {
+                    $materialName = $material['name'] ?? $material; // Handle both associative and indexed arrays
+                    $stmt = $conn->prepare("INSERT INTO materials (activityId, name) VALUES (?, ?)");
+                    $stmt->bind_param("is", $activityId, $materialName);
+                    $stmt->execute();
+                }
             }
-            $activityStmt->close();
+        
+            $conn->close();
+            header("Location: /");
+            exit();
         }
-
-        header("Location: index.php");
-        exit();
     } else {
         echo "Error: " . $stmt->error;
     }
@@ -182,16 +196,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         function addActivity() {
+            const title = document.getElementById('activityTitle').value;
             const duration = document.getElementById('activityDuration').value;
             const difficulty = document.getElementById('activityDifficulty').value;
             const materials = document.getElementById('activityMaterials').value.split(',');
 
-            if (!duration || !difficulty || materials.length === 0) {
+            if (!title || !duration || !difficulty || materials.length === 0) {
                 alert('Please fill in all activity fields.');
                 return;
             }
 
             const activity = {
+                title,
                 duration: parseInt(duration),
                 difficulty,
                 materials
@@ -201,9 +217,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             const activityListElement = document.getElementById('activityList');
             const listItem = document.createElement('li');
-            listItem.textContent = `Duration: ${duration} mins, Difficulty: ${difficulty}, Materials: ${materials.join(', ')}`;
+            listItem.textContent = `Title: ${title}, Duration: ${duration} mins, Difficulty: ${difficulty}, Materials: ${materials.join(', ')}`;
             activityListElement.appendChild(listItem);
 
+            document.getElementById('activityTitle').value = '';
             document.getElementById('activityDuration').value = '';
             document.getElementById('activityDifficulty').value = 'beginner';
             document.getElementById('activityMaterials').value = '';
@@ -285,6 +302,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Activities -->
             <div class="form-group">
                 <h3>Add Activities</h3>
+                <label for="activityTitle">Title:</label>
+                <input type="text" id="activityTitle">
                 <label for="activityDuration">Duration (minutes):</label>
                 <input type="number" id="activityDuration">
                 <label for="activityDifficulty">Difficulty:</label>

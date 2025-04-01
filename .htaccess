@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Exclude API routes from being redirected
+RewriteCond %{REQUEST_URI} !^/api/
+
+# Redirect all other requests to router.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ router.php [QSA,L]

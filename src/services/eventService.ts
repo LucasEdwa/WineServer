@@ -131,10 +131,14 @@ export async function editEvent(eventId: number, eventData: any) {
         connection.release();
     }
 }
-export async function deleteEvent(eventId: number) {
+
+export async function deleteEvent(eventId: number): Promise<void> {
     const connection = await pool.getConnection();
     try {
         await connection.query('DELETE FROM events WHERE id = ?', [eventId]);
+    } catch (error) {
+        console.error('Error deleting event:', error);
+        throw error;
     } finally {
         connection.release();
     }

@@ -1,4 +1,8 @@
 <?php
+include_once 'navbar.php'; // Include navbar.php for the navbar
+
+renderNavbar(); // Render the navbar
+
 $event = null;
 $wineCollection = [];
 $activities = [];
@@ -65,66 +69,7 @@ if (isset($_GET['id'])) {
 
 <head>
     <title>Event Details</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .event-title {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-
-        .event-image {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .event-details p {
-            margin: 5px 0;
-        }
-
-        .error-message {
-            color: red;
-            font-weight: bold;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            text-decoration: none;
-            color: #007BFF;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        .section-title {
-            font-size: 20px;
-            margin-top: 20px;
-        }
-
-        .wine-item,
-        .activity-item {
-            margin-bottom: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="getEventById.css">
 </head>
 
 <body>
@@ -170,16 +115,16 @@ if (isset($_GET['id'])) {
                 <ul>
                     <?php foreach ($activities as $activity): ?>
                         <li class="activity-item">
-                            <strong><?php echo htmlspecialchars($activity['name']); ?></strong><br>
-                            <strong>Duration:</strong> <?php echo htmlspecialchars($activity['duration']); ?> minutes<br>
-                            <strong>Difficulty:</strong> <?php echo htmlspecialchars($activity['difficulty']); ?><br>
+                            <strong><?php echo htmlspecialchars($activity['title'] ?? 'Untitled Activity'); ?></strong><br>
+                            <strong>Duration:</strong> <?php echo htmlspecialchars($activity['duration'] ?? 'Unknown'); ?> minutes<br>
+                            <strong>Difficulty:</strong> <?php echo htmlspecialchars($activity['difficulty'] ?? 'Unknown'); ?><br>
                             <strong>Materials:</strong>
                             <?php 
-                                $materials = $activity['materials']; // Use decoded materials array
-                                if (is_array($materials)) {
-                                    echo htmlspecialchars(implode(', ', $materials)); // Use implode only if $materials is an array
+                                $materials = $activity['materials'] ?? [];
+                                if (!empty($materials)) {
+                                    echo htmlspecialchars(implode(', ', $materials));
                                 } else {
-                                    echo 'No materials provided'; // Handle invalid or empty JSON gracefully
+                                    echo 'No materials provided';
                                 }
                             ?>
                         </li>
@@ -189,7 +134,7 @@ if (isset($_GET['id'])) {
                 <p>No activities available for this event.</p>
             <?php endif; ?>
         <?php endif; ?>
-        <a href="index.php" class="back-link">← Back to Events</a>
+        <a href="/" class="back-link">← Back to Events</a>
     </div>
 </body>
 

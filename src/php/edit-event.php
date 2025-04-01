@@ -1,6 +1,8 @@
 <?php
 $NODE_SERVER = 'http://localhost:3000';
 $event = null;
+require_once('navbar.php'); // Include the router for navbar rendering
+renderNavbar(); 
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $eventId = $_GET['id'] ?? null;
@@ -213,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $conn->close();
-    header("Location: index.php");
+    header("Location: /");
     exit();
 }
 ?>
@@ -221,7 +223,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     const wineCollection = <?php echo json_encode($event['wineCollection'] ?? []); ?>;
     const activities = <?php echo json_encode($event['activities'] ?? []); ?>;
 
-    console.log("Loaded event data:", <?php echo json_encode($event); ?>);
 
     function updateWineList() {
         const wineListElement = document.getElementById('wineList');
@@ -328,6 +329,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     function removeActivity(index) {
         activities.splice(index, 1);
         updateActivityList();
+    }
+
+    function deleteEvent(id) {
+        if (confirm("Are you sure you want to delete this event?")) {
+            fetch(`<?php echo $NODE_SERVER; ?>/api/deleteEvent/${id}`, {
+                method: "DELETE",
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = "/";
+                } else {
+                    return response.text().then(error => {
+                        throw new Error(error);
+                    });
+                }
+            })
+            .catch(error => {
+                alert("Failed to delete the event: " + error.message);
+            });
+        }
     }
 
     window.onload = function() {
@@ -442,8 +463,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="button-group">
                 <button type="submit" class="save-button">Save Changes</button>
-                <a href="index.php"><button type="button" class="cancel-button">Cancel</button></a>
-                <button type="button" class="delete-button" onclick="deleteEvent()">Delete Event</button>
+                <a href="/"><button type="button" class="cancel-button">Cancel</button></a>
+                <button type="button" class="delete-button" onclick="deleteEvent(<?php echo htmlspecialchars($event['id']); ?>)">Delete Event</button>
             </div>
         </form>
     </div>
@@ -451,5 +472,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </html>
 <?php else: ?>
     <p>Error: Could not load event data. Please check the event ID or try again later.</p>
-    <a href="index.php">Back to Events</a>
+    <a href="/>Back to Events</a>
 <?php endif; ?>
