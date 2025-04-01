@@ -77,7 +77,15 @@ function renderWineItem($wine) {
                 </p>
                 <p><strong>Location:</strong> <?php echo htmlspecialchars($event['location']); ?></p>
                 <p><strong>Price:</strong> $<?php echo number_format($event['price'], 2); ?></p>
-                <p><strong>Capacity:</strong> <?php echo number_format($event['capacity']); ?></p>
+                <p><strong>Capacity:</strong> 
+                    <?php 
+                    if ($event['capacity'] <= 0) {
+                        echo "Fully Booked";
+                    } else {
+                        echo number_format($event['capacity']);
+                    }
+                    ?>
+                </p>
             </div>
 
             <!-- Display wine collection -->

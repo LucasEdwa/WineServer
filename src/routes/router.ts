@@ -1,6 +1,7 @@
 import express from "express";
 import fileUpload, { UploadedFile } from "express-fileupload";
 import { Request, Response } from "express";
+import { format } from "date-fns"; // Import date-fns for date formatting
 
 import pool from "../connection";
 import { createEvent, editEvent, deleteEvent } from "../services/eventService";
@@ -32,12 +33,20 @@ router.post(
     try {
       await connection.beginTransaction();
 
-      // Retrieve event date
+      // Retrieve event details
       const [eventResult] = await connection.query(
-        "SELECT date FROM events WHERE id = ?",
+        "SELECT capacity, date FROM events WHERE id = ?",
         [eventId]
       );
-      const eventDate = (eventResult as any)[0].date;
+      const event = (eventResult as any)[0];
+
+      if (!event || event.capacity <= 0) {
+        res.status(400).send({ error: "Event is fully booked" });
+        return;
+      }
+
+      // Format the event date for MySQL
+      const formattedDate = format(new Date(event.date), "yyyy-MM-dd");
 
       // Create user
       const [userResult] = await connection.query(
@@ -57,7 +66,7 @@ router.post(
         userId,
         eventId,
         eventTitle,
-        date: eventDate,
+        date: formattedDate, // Use the formatted date
       };
       await connection.query(
         "INSERT INTO Bookings (userId, eventId, eventTitle, date) VALUES (?, ?, ?, ?)",
@@ -67,6 +76,12 @@ router.post(
           bookingProps.eventTitle,
           bookingProps.date,
         ]
+      );
+
+      // Decrement event capacity
+      await connection.query(
+        "UPDATE events SET capacity = capacity - 1 WHERE id = ?",
+        [eventId]
       );
 
       await connection.commit();
@@ -82,7 +97,6 @@ router.post(
     }
   }
 );
-
 
 router.get(
   "/getBookingByUser/:useremail",
@@ -113,7 +127,6 @@ router.get(
     }
   }
 );
-
 
 router.delete(
   "/deleteBooking/:bookingId",
@@ -173,7 +186,5 @@ router.get(
     }
   }
 );
-
-
 
 export default router;
