@@ -21,6 +21,7 @@ export type TEvent = {
     wineSelection: string;
     activities: string;
     isPrivate: boolean;
+    isActive: boolean; // New attribute to indicate if the event is active
 };
 
 export type TWineCollection = {

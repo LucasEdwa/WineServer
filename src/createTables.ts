@@ -4,8 +4,9 @@ export default async function createTables() {
     const connection = await pool.getConnection();
     try {
         // Drop dependent tables first to avoid foreign key constraint errors
+        await connection.query(`DROP TABLE IF EXISTS materials`); // Drop child table first
+        await connection.query(`DROP TABLE IF EXISTS activities`); // Then drop parent table
         await connection.query(`DROP TABLE IF EXISTS wineCollection`);
-        await connection.query(`DROP TABLE IF EXISTS activities`);
         await connection.query(`DROP TABLE IF EXISTS Bookings`);
         await connection.query(`DROP TABLE IF EXISTS events`);
         await connection.query(`DROP TABLE IF EXISTS users`);
@@ -66,6 +67,13 @@ export default async function createTables() {
             difficulty ENUM('beginner', 'intermediate', 'advanced') NOT NULL,
             materials JSON,
             FOREIGN KEY (eventId) REFERENCES events(id) ON DELETE CASCADE
+        )`);
+
+        await connection.query(`CREATE TABLE IF NOT EXISTS materials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            activityId INT NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            FOREIGN KEY (activityId) REFERENCES activities(id) ON DELETE CASCADE
         )`);
 
         console.log('Tables created successfully.');

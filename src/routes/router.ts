@@ -182,9 +182,19 @@ router.get('/getEvents', async (req: Request, res: Response<TEvent[] | Error>): 
     const connection = await pool.getConnection();
     try {
         const [results] = await connection.query(
-            'SELECT title, date, startTime, endTime, location FROM events'
+            'SELECT id, title, description, imageUrl, date, startTime, endTime, location, capacity, price, currentAttendees, isPrivate FROM events'
         );
-        res.status(200).send(results as TEvent[]);
+
+        const events = (results as TEvent[]).map(event => {
+            const currentDate = new Date();
+            const eventDate = new Date(event.date);
+            return {
+                ...event,
+                isActive: eventDate >= currentDate // Event is active if its date is in the future
+            };
+        });
+
+        res.status(200).send(events);
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send({ error: 'Error retrieving events' });
