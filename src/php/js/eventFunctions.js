@@ -18,6 +18,7 @@ function updateWineList() {
     wineList.forEach((wine, index) => {
         const listItem = document.createElement('li');
         listItem.textContent = `${wine.name} (${wine.variety}, ${wine.year}, ${wine.region}) - $${wine.price}`;
+        listItem.addClassName = 'wine-item';
         const removeButton = document.createElement('button');
         removeButton.textContent = 'Remove';
         removeButton.onclick = () => removeWine(index);

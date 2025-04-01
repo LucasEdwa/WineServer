@@ -23,7 +23,7 @@ function fetchWineCollection($conn, $eventId) {
     }
     $stmt->close();
 
-    // Log the fetched wine collection for debugging
+    // Debugging: Log the fetched wine collection
     error_log("Fetched Wine Collection: " . json_encode($wineCollection));
 
     return $wineCollection;

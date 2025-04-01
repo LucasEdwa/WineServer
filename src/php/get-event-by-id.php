@@ -31,6 +31,26 @@ if (isset($_GET['id'])) {
 } else {
     $error = 'No event ID provided.';
 }
+
+function renderWineItem($wine) {
+    $imageUrl = htmlspecialchars($wine['imageUrl'] ?? '/images/default-wine.png'); // Use a default image if none is provided
+    return sprintf(
+        '<li class="wine-item">
+            <strong>%s</strong> (%s, %d) - $%s
+            <p><strong>Region:</strong> %s</p>
+            <p>%s</p>
+            <img src="http://localhost:3000%s" alt="%s" style="max-width: 200px;">
+        </li>',
+        htmlspecialchars($wine['name']),
+        htmlspecialchars($wine['variety']),
+        htmlspecialchars($wine['year']),
+        number_format($wine['price'], 2),
+        htmlspecialchars($wine['region']), // Include the region here
+        htmlspecialchars($wine['description']),
+        $imageUrl,
+        htmlspecialchars($wine['name'])
+    );
+}
 ?>
 
 <!DOCTYPE html>
@@ -53,7 +73,8 @@ if (isset($_GET['id'])) {
                 <p><strong>Description:</strong> <?php echo htmlspecialchars($event['description']); ?></p>
                 <p><strong>Date:</strong> <?php echo date('F j, Y', strtotime($event['date'])); ?></p>
                 <p><strong>Time:</strong> <?php echo date('g:i A', strtotime($event['startTime'])); ?> -
-                    <?php echo date('g:i A', strtotime($event['endTime'])); ?></p>
+                    <?php echo date('g:i A', strtotime($event['endTime'])); ?>
+                </p>
                 <p><strong>Location:</strong> <?php echo htmlspecialchars($event['location']); ?></p>
                 <p><strong>Price:</strong> $<?php echo number_format($event['price'], 2); ?></p>
                 <p><strong>Capacity:</strong> <?php echo number_format($event['capacity']); ?></p>
@@ -64,14 +85,7 @@ if (isset($_GET['id'])) {
             <?php if (!empty($wineCollection)): ?>
                 <ul>
                     <?php foreach ($wineCollection as $wine): ?>
-                        <li class="wine-item">
-                            <strong><?php echo htmlspecialchars($wine['name']); ?></strong>
-                            (<?php echo htmlspecialchars($wine['variety']); ?>, <?php echo htmlspecialchars($wine['year']); ?>) -
-                            $<?php echo number_format($wine['price'], 2); ?>
-                            <p><?php echo htmlspecialchars($wine['description']); ?></p>
-                            <img src="http://localhost:3000<?php echo htmlspecialchars($wine['imageUrl']); ?>"
-                                alt="<?php echo htmlspecialchars($wine['name']); ?>" style="max-width: 200px;">
-                        </li>
+                        <?php echo renderWineItem($wine); ?>
                     <?php endforeach; ?>
                 </ul>
             <?php else: ?>
@@ -85,16 +99,17 @@ if (isset($_GET['id'])) {
                     <?php foreach ($activities as $activity): ?>
                         <li class="activity-item">
                             <strong><?php echo htmlspecialchars($activity['title'] ?? 'Untitled Activity'); ?></strong><br>
-                            <strong>Duration:</strong> <?php echo htmlspecialchars($activity['duration'] ?? 'Unknown'); ?> minutes<br>
+                            <strong>Duration:</strong> <?php echo htmlspecialchars($activity['duration'] ?? 'Unknown'); ?>
+                            minutes<br>
                             <strong>Difficulty:</strong> <?php echo htmlspecialchars($activity['difficulty'] ?? 'Unknown'); ?><br>
                             <strong>Materials:</strong>
-                            <?php 
-                                $materials = $activity['materials'] ?? [];
-                                if (!empty($materials)) {
-                                    echo htmlspecialchars(implode(', ', $materials));
-                                } else {
-                                    echo 'No materials provided';
-                                }
+                            <?php
+                            $materials = $activity['materials'] ?? [];
+                            if (!empty($materials)) {
+                                echo htmlspecialchars(implode(', ', $materials));
+                            } else {
+                                echo 'No materials provided';
+                            }
                             ?>
                         </li>
                     <?php endforeach; ?>

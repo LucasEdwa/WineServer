@@ -10,6 +10,7 @@
 .navbar-logo img.logo {
     height: 50px;
     width: auto;
+    border-radius: 100%;
 }
 
 .navbar-links a {

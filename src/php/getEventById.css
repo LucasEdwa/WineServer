@@ -52,7 +52,13 @@ body {
     margin-top: 20px;
 }
 
-.wine-item,
+.wine-item {
+    list-style-type: none;
+    margin-bottom: 10px;
+}
+
 .activity-item {
     margin-bottom: 10px;
+    list-style: none;
+    
 }

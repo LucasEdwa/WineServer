@@ -206,8 +206,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="wineDescription">Description:</label>
                     <textarea id="wineDescription"></textarea>
                     <label for="wineImages">Upload Wine Images:</label>
+                    <div class="wine-image-upload">
                     <input type="file" id="wineImages" name="wineImages[]" multiple accept="image/*">
-                    <button type="button" onclick="addWine()">Add Wine</button>
+                    <button type="button" class="wine-add-button" onclick="addWine()">Add Wine</button>
+                    </div>
                     <ul id="wineList"></ul>
                 </div>
                 <!-- Activities -->
@@ -225,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </select>
                     <label for="activityMaterials">Materials (comma-separated):</label>
                     <input type="text" id="activityMaterials">
-                    <button type="button" onclick="addActivity()">Add Activity</button>
+                    <button type="button" class="activity-add-button" onclick="addActivity()">Add Activity</button>
                     <ul id="activityList"></ul>
                 </div>
                 <div class="button-group">

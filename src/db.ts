@@ -9,8 +9,8 @@ const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
 
 // Define image paths relative to server
 const IMAGES = {
-    wine1: '/images/wine.1.jpg',
-    wine2: '/images/wine.2.jpg',
+    wine1: '/images/image.png',
+    wine2: '/images/image2.png',
     wine3: '/images/wine.3.jpg',
     wine4: '/images/wine.4.jpg'
 };
@@ -36,7 +36,7 @@ const events = [
                 region: 'Napa Valley',
                 price: 45.00,
                 description: 'A rich and buttery wine with notes of vanilla and oak.',
-                imageUrl: `${SERVER_URL}${IMAGES.wine1}`
+                imageUrl: `${IMAGES.wine1}`
             },
             
             {
@@ -46,7 +46,7 @@ const events = [
                 region: 'Sonoma',
                 price: 35.00,
                 description: 'A medium-bodied wine with flavors of black cherry and plum.',
-                imageUrl: `${SERVER_URL}${IMAGES.wine2}`
+                imageUrl: `${IMAGES.wine2}`
             }
         ] as TWineCollection[],
         activities: [
