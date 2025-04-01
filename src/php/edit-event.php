@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $response = curl_exec($ch);
 
     if (curl_errno($ch)) {
+        error_log("Curl error: " . curl_error($ch));
         die('Error fetching event: ' . curl_error($ch));
     }
 
@@ -23,37 +24,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $responseData = json_decode($response, true);
 
-    // Debugging: Log the API response
     if (!$responseData) {
         error_log("API response is empty or invalid: " . $response);
+        die("Failed to fetch event data from the API.");
     }
 
     $event = $responseData[0] ?? null;
 
     if (!$event) {
+        error_log("Event not found for ID: " . $eventId);
         die("Event not found. Please check if the event ID is correct.");
     }
+
+    // Log the event data for debugging
+    error_log("Fetched event data: " . json_encode($event));
 
     // Fetch wineCollection and activities from the database
     $conn = new mysqli('localhost', 'root', 'root', 'wine');
     if ($conn->connect_error) {
+        error_log("Database connection failed: " . $conn->connect_error);
         die('Connection failed: ' . $conn->connect_error);
     }
 
+    // Fetch wine collection
     $wineCollectionResult = $conn->query("SELECT * FROM wineCollection WHERE eventId = $eventId");
+    $event['wineCollection'] = [];
     if ($wineCollectionResult) {
-        $event['wineCollection'] = $wineCollectionResult->fetch_all(MYSQLI_ASSOC);
+        while ($wine = $wineCollectionResult->fetch_assoc()) {
+            $event['wineCollection'][] = $wine;
+        }
     } else {
-        error_log("Error fetching wine collection: " . $conn->error);
-        $event['wineCollection'] = [];
+        error_log("Error fetching wine collection for event ID: " . $eventId . " - " . $conn->error);
     }
 
+    // Fetch activities and their materials
     $activitiesResult = $conn->query("SELECT * FROM activities WHERE eventId = $eventId");
+    $event['activities'] = [];
     if ($activitiesResult) {
-        $event['activities'] = $activitiesResult->fetch_all(MYSQLI_ASSOC);
+        while ($activity = $activitiesResult->fetch_assoc()) {
+            // Fetch materials for each activity
+            $materialsResult = $conn->query("SELECT * FROM materials WHERE activityId = " . $activity['id']);
+            $activity['materials'] = [];
+            if ($materialsResult) {
+                while ($material = $materialsResult->fetch_assoc()) {
+                    $activity['materials'][] = $material;
+                }
+            } else {
+                error_log("Error fetching materials for activity ID: " . $activity['id'] . " - " . $conn->error);
+            }
+            $event['activities'][] = $activity;
+        }
     } else {
-        error_log("Error fetching activities: " . $conn->error);
-        $event['activities'] = [];
+        error_log("Error fetching activities for event ID: " . $eventId . " - " . $conn->error);
     }
 
     $conn->close();
@@ -61,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn = new mysqli('localhost', 'root', 'root', 'wine');
-
     if ($conn->connect_error) {
         die('Connection failed: ' . $conn->connect_error);
     }
@@ -70,20 +91,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $event_target_dir = "/Users/lucaseduardo/wineServer/src/images/";
     $wine_target_dir = "/Users/lucaseduardo/wineServer/src/images/wineimages/";
 
-    // Ensure directories exist
-    if (!file_exists($event_target_dir)) {
-        if (!mkdir($event_target_dir, 0777, true)) {
-            die("Failed to create directory: " . $event_target_dir);
-        }
-    }
-    if (!file_exists($wine_target_dir)) {
-        if (!mkdir($wine_target_dir, 0777, true)) {
-            die("Failed to create directory: " . $wine_target_dir);
-        }
-    }
-
     // Handle event image upload
+    $imageUrl = $_POST['currentImageUrl'];
     if (isset($_FILES['image']) && $_FILES['image']['size'] > 0) {
+        if (!is_dir($event_target_dir)) {
+            mkdir($event_target_dir, 0777, true); // Create the directory if it doesn't exist
+        }
+
         $imageFileType = strtolower(pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION));
         $target_file = $event_target_dir . "event." . uniqid() . "." . $imageFileType;
 
@@ -92,42 +106,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             die("Upload error: Unable to upload the event image.");
         }
-    } else {
-        $imageUrl = $_POST['currentImageUrl'];
     }
 
-    // Handle wine image uploads
-    $wineImageUrls = [];
-    if (!empty($_FILES['wineImages']['name'])) {
-        foreach ($_FILES['wineImages']['name'] as $index => $wineImageName) {
-            if ($_FILES['wineImages']['size'][$index] > 0) {
-                $wineImageFileType = strtolower(pathinfo($wineImageName, PATHINFO_EXTENSION));
-                $wineTargetFile = $wine_target_dir . "wine." . uniqid() . "." . $wineImageFileType;
-
-                if (move_uploaded_file($_FILES['wineImages']['tmp_name'][$index], $wineTargetFile)) {
-                    $wineImageUrls[$index] = "/images/wineimages/" . basename($wineTargetFile);
-                } else {
-                    die("Upload error: Unable to upload wine image for index $index.");
-                }
-            }
-        }
-    }
-
-    // Store values in variables
+    // Prepare variables for bind_param
     $title = $_POST['title'];
     $description = $_POST['description'];
     $date = $_POST['date'];
     $startTime = $_POST['startTime'];
     $endTime = $_POST['endTime'];
     $location = $_POST['location'];
-    $capacity = intval($_POST['capacity']); // Ensure this is a variable
-    $price = floatval($_POST['price']); // Ensure this is a variable
+    $capacity = intval($_POST['capacity']);
+    $price = floatval($_POST['price']);
     $isPrivate = isset($_POST['isPrivate']) ? 1 : 0;
-    $id = $_POST['id'];
+    $id = intval($_POST['id']);
 
-    // Update event
+    // Update event details
     $stmt = $conn->prepare("UPDATE events SET title = ?, description = ?, imageUrl = ?, date = ?, startTime = ?, endTime = ?, location = ?, capacity = ?, price = ?, isPrivate = ? WHERE id = ?");
-    $stmt->bind_param("sssssssidii", 
+    $stmt->bind_param(
+        "sssssssidii",
         $title,
         $description,
         $imageUrl,
@@ -135,217 +131,223 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $startTime,
         $endTime,
         $location,
-        $capacity, // Pass variable
-        $price,    // Pass variable
+        $capacity,
+        $price,
         $isPrivate,
         $id
     );
 
-    if ($stmt->execute()) {
-        // Update wine collection
-        if (!empty($_POST['wineCollection'])) {
-            $wineCollection = json_decode($_POST['wineCollection'], true);
-
-            foreach ($wineCollection as $index => $wine) {
-                if (isset($wine['id'])) {
-                    // Update existing wine
-                    $wineStmt = $conn->prepare("UPDATE wineCollection SET name = ?, variety = ?, year = ?, region = ?, price = ?, description = ? WHERE id = ?");
-                    $wineStmt->bind_param("ssisdsi", 
-                        $wine['name'],
-                        $wine['variety'],
-                        $wine['year'],
-                        $wine['region'],
-                        $wine['price'],
-                        $wine['description'],
-                        $wine['id']
-                    );
-                    $wineStmt->execute();
-                } else {
-                    // Insert new wine
-                    $wineStmt = $conn->prepare("INSERT INTO wineCollection (eventId, name, variety, year, region, price, description, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $wineImageUrl = $wineImageUrls[$index] ?? null; // Ensure this is a variable
-                    $wineStmt->bind_param("issisdss", 
-                        $id,
-                        $wine['name'],
-                        $wine['variety'],
-                        $wine['year'],
-                        $wine['region'],
-                        $wine['price'],
-                        $wine['description'],
-                        $wineImageUrl
-                    );
-                    $wineStmt->execute();
-                }
-            }
-        }
-
-        // Update activities
-        if (!empty($_POST['activities'])) {
-            $activities = json_decode($_POST['activities'], true);
-
-            foreach ($activities as $activity) {
-                if (isset($activity['id'])) {
-                    // Update existing activity
-                    $activityStmt = $conn->prepare("UPDATE activities SET duration = ?, difficulty = ?, materials = ? WHERE id = ?");
-                    $materialsJson = json_encode($activity['materials']);
-                    $activityStmt->bind_param("issi", 
-                        $activity['duration'],
-                        $activity['difficulty'],
-                        $materialsJson,
-                        $activity['id']
-                    );
-                    $activityStmt->execute();
-                } else {
-                    // Insert new activity
-                    $activityStmt = $conn->prepare("INSERT INTO activities (eventId, duration, difficulty, materials) VALUES (?, ?, ?, ?)");
-                    $materialsJson = json_encode($activity['materials']);
-                    $activityStmt->bind_param("iiss", 
-                        $id,
-                        $activity['duration'],
-                        $activity['difficulty'],
-                        $materialsJson
-                    );
-                    $activityStmt->execute();
-                }
-            }
-        }
-
-        header("Location: index.php");
-        exit();
-    } else {
-        echo "Error: " . $stmt->error;
+    if (!$stmt->execute()) {
+        die("Error updating event: " . $stmt->error);
     }
 
-    $stmt->close();
+    // Update wine collection
+    $conn->query("DELETE FROM wineCollection WHERE eventId = " . $id);
+    $wineCollection = json_decode($_POST['wineCollection'], true);
+    foreach ($wineCollection as $index => $wine) { // Use $index from the loop
+        // Handle wine image upload
+        $wineImageUrl = $wine['imageUrl'];
+        if (isset($_FILES['wineImages']['tmp_name'][$index]) && $_FILES['wineImages']['size'][$index] > 0) {
+            if (!is_dir($wine_target_dir)) {
+                mkdir($wine_target_dir, 0777, true); // Create the directory if it doesn't exist
+            }
+
+            $wineImageFileType = strtolower(pathinfo($_FILES['wineImages']['name'][$index], PATHINFO_EXTENSION));
+            $wineTargetFile = $wine_target_dir . "wine." . uniqid() . "." . $wineImageFileType;
+
+            if (move_uploaded_file($_FILES['wineImages']['tmp_name'][$index], $wineTargetFile)) {
+                $wineImageUrl = "/images/wineimages/" . basename($wineTargetFile);
+            } else {
+                die("Upload error: Unable to upload the wine image.");
+            }
+        }
+
+        // Assign variables for bind_param
+        $wineName = $wine['name'];
+        $wineVariety = $wine['variety'];
+        $wineYear = intval($wine['year']);
+        $wineRegion = $wine['region'];
+        $winePrice = floatval($wine['price']);
+        $wineDescription = $wine['description'];
+
+        $stmt = $conn->prepare("INSERT INTO wineCollection (eventId, name, variety, year, region, price, description, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param(
+            "issisdss",
+            $id,
+            $wineName,
+            $wineVariety,
+            $wineYear,
+            $wineRegion,
+            $winePrice,
+            $wineDescription,
+            $wineImageUrl
+        );
+        $stmt->execute();
+    }
+
+    // Update activities and materials
+    $conn->query("DELETE FROM activities WHERE eventId = " . $id);
+    $activities = json_decode($_POST['activities'], true);
+    foreach ($activities as $activity) {
+        $activityTitle = $activity['title'];
+        $activityDuration = intval($activity['duration']);
+        $activityDifficulty = $activity['difficulty'];
+
+        $stmt = $conn->prepare("INSERT INTO activities (eventId, title, duration, difficulty) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param(
+            "isis",
+            $id,
+            $activityTitle,
+            $activityDuration,
+            $activityDifficulty
+        );
+        $stmt->execute();
+        $activityId = $stmt->insert_id;
+
+        foreach ($activity['materials'] as $material) {
+            $materialName = $material['name'];
+            $stmt = $conn->prepare("INSERT INTO materials (activityId, name) VALUES (?, ?)");
+            $stmt->bind_param("is", $activityId, $materialName);
+            $stmt->execute();
+        }
+    }
+
     $conn->close();
+    header("Location: index.php");
+    exit();
 }
 ?>
+<script>
+    const wineCollection = <?php echo json_encode($event['wineCollection'] ?? []); ?>;
+    const activities = <?php echo json_encode($event['activities'] ?? []); ?>;
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Edit Wine Event</title>
-    <link rel="stylesheet" href="editEventStyle.css">
-    <script>
-        let wineList = <?php echo json_encode($event['wineCollection']); ?>;
-        let activityList = <?php echo json_encode($event['activities']); ?>;
-        function deleteEvent() {
-            if (confirm("Are you sure you want to delete this event?")) {
-                const eventId = <?php echo json_encode($event['id']); ?>;
-                const xhr = new XMLHttpRequest();
-                xhr.open("DELETE", "<?php echo $NODE_SERVER; ?>/api/deleteEvent/" + eventId, true);
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        alert("Event deleted successfully.");
-                        window.location.href = "index.php";
-                    } else {
-                        alert("Error deleting event: " + xhr.responseText);
-                    }
-                };
-                xhr.send();
-            }
-        }
-        function addWine() {
-            const name = document.getElementById('wineName').value;
-            const variety = document.getElementById('wineVariety').value;
-            const year = document.getElementById('wineYear').value;
-            const region = document.getElementById('wineRegion').value;
-            const price = document.getElementById('winePrice').value;
-            const description = document.getElementById('wineDescription').value;
+    console.log("Loaded event data:", <?php echo json_encode($event); ?>);
 
-            if (!name || !variety || !year || !region || !price || !description) {
-                alert('Please fill in all wine fields.');
-                return;
-            }
+    function updateWineList() {
+        const wineListElement = document.getElementById('wineList');
+        if (!wineListElement) return; // Ensure the element exists
+        wineListElement.innerHTML = '';
+        wineCollection.forEach((wine, index) => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${wine.name} (${wine.variety}, ${wine.year}, ${wine.region}) - $${wine.price}`;
+            const removeButton = document.createElement('button');
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = () => removeWine(index);
+            listItem.appendChild(removeButton);
+            wineListElement.appendChild(listItem);
+        });
+        document.getElementById('wineCollection').value = JSON.stringify(wineCollection);
+    }
 
-            const wine = {
-                name,
-                variety,
-                year: parseInt(year),
-                region,
-                price: parseFloat(price),
-                description
-            };
+    function addWine() {
+        const name = document.getElementById('wineName').value;
+        const variety = document.getElementById('wineVariety').value;
+        const year = document.getElementById('wineYear').value;
+        const region = document.getElementById('wineRegion').value;
+        const price = document.getElementById('winePrice').value;
+        const description = document.getElementById('wineDescription').value;
 
-            wineList.push(wine);
-            updateWineList();
+        if (!name || !variety || !year || !region || !price || !description) {
+            alert('Please fill in all wine fields.');
+            return;
         }
 
-        function removeWine(index) {
-            wineList.splice(index, 1);
-            updateWineList();
-        }
-
-        function updateWineList() {
-            const wineListElement = document.getElementById('wineList');
-            wineListElement.innerHTML = '';
-            wineList.forEach((wine, index) => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${wine.name} (${wine.variety}, ${wine.year}, ${wine.region}) - $${wine.price}`;
-                const removeButton = document.createElement('button');
-                removeButton.textContent = 'X';
-                removeButton.onclick = () => removeWine(index);
-                listItem.appendChild(removeButton);
-                wineListElement.appendChild(listItem);
-            });
-            document.getElementById('wineCollection').value = JSON.stringify(wineList);
-        }
-
-        function addActivity() {
-            const duration = document.getElementById('activityDuration').value;
-            const difficulty = document.getElementById('activityDifficulty').value;
-            const materials = document.getElementById('activityMaterials').value.split(',');
-
-            if (!duration || !difficulty || materials.length === 0) {
-                alert('Please fill in all activity fields.');
-                return;
-            }
-
-            const activity = {
-                duration: parseInt(duration),
-                difficulty,
-                materials
-            };
-
-            activityList.push(activity);
-            updateActivityList();
-        }
-
-        function removeActivity(index) {
-            activityList.splice(index, 1);
-            updateActivityList();
-        }
-
-        function updateActivityList() {
-            const activityListElement = document.getElementById('activityList');
-            activityListElement.innerHTML = '';
-            activityList.forEach((activity, index) => {
-                // Ensure materials is parsed into an array
-                const materials = Array.isArray(activity.materials)
-                    ? activity.materials
-                    : JSON.parse(activity.materials || '[]');
-
-                const listItem = document.createElement('li');
-                listItem.textContent = `Duration: ${activity.duration} mins, Difficulty: ${activity.difficulty}, Materials: ${materials.join(', ')}`;
-                const removeButton = document.createElement('button');
-                removeButton.textContent = 'X';
-                removeButton.onclick = () => removeActivity(index);
-                listItem.appendChild(removeButton);
-                activityListElement.appendChild(listItem);
-            });
-            document.getElementById('activities').value = JSON.stringify(activityList);
-        }
-
-        window.onload = function() {
-            updateWineList();
-            updateActivityList();
+        const newWine = {
+            name,
+            variety,
+            year: parseInt(year),
+            region,
+            price: parseFloat(price),
+            description,
+            imageUrl: '' // Placeholder for image URL
         };
-    </script>
+
+        wineCollection.push(newWine);
+        updateWineList();
+
+        // Clear input fields
+        document.getElementById('wineName').value = '';
+        document.getElementById('wineVariety').value = '';
+        document.getElementById('wineYear').value = '';
+        document.getElementById('wineRegion').value = '';
+        document.getElementById('winePrice').value = '';
+        document.getElementById('wineDescription').value = '';
+    }
+
+    function updateActivityList() {
+        const activityListElement = document.getElementById('activityList');
+        if (!activityListElement) return; // Ensure the element exists
+        activityListElement.innerHTML = '';
+        activities.forEach((activity, index) => {
+            const materials = activity.materials.map(material => material.name).join(', ');
+            const listItem = document.createElement('li');
+            listItem.textContent = `Title: ${activity.title}, Duration: ${activity.duration} mins, Difficulty: ${activity.difficulty}, Materials: ${materials}`;
+            const removeButton = document.createElement('button');
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = () => removeActivity(index);
+            listItem.appendChild(removeButton);
+            activityListElement.appendChild(listItem);
+        });
+        document.getElementById('activities').value = JSON.stringify(activities);
+    }
+
+    function addActivity() {
+        const title = document.getElementById('activityTitle').value;
+        const duration = document.getElementById('activityDuration').value;
+        const difficulty = document.getElementById('activityDifficulty').value;
+        const materialsInput = document.getElementById('activityMaterials').value;
+        const materials = materialsInput.split(',').map(material => material.trim());
+
+        if (!title || !duration || !difficulty || materials.length === 0) {
+            alert('Please fill in all activity fields.');
+            return;
+        }
+
+        const newActivity = {
+            title,
+            duration: parseInt(duration),
+            difficulty,
+            materials: materials.map(name => ({ name }))
+        };
+
+        activities.push(newActivity);
+        updateActivityList();
+
+        // Clear input fields
+        document.getElementById('activityTitle').value = '';
+        document.getElementById('activityDuration').value = '';
+        document.getElementById('activityDifficulty').value = 'beginner';
+        document.getElementById('activityMaterials').value = '';
+    }
+
+    function removeWine(index) {
+        wineCollection.splice(index, 1);
+        updateWineList();
+    }
+
+    function removeActivity(index) {
+        activities.splice(index, 1);
+        updateActivityList();
+    }
+
+    window.onload = function() {
+        updateWineList();
+        updateActivityList();
+    };
+</script>
+
+<?php if ($event): ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Event</title>
+    <link rel="stylesheet" href="editEventStyle.css">
 </head>
 <body>
-    <div class="form-container">
-        <h2>Edit Wine Event</h2>
-        <?php if ($event): ?>
+    <div class="container">
+        <h1>Edit Event</h1>
         <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" value="<?php echo htmlspecialchars($event['id'] ?? ''); ?>">
             <input type="hidden" name="currentImageUrl" value="<?php echo htmlspecialchars($event['imageUrl'] ?? ''); ?>">
@@ -422,6 +424,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Activities -->
             <div class="form-group">
                 <h3>Edit Activities</h3>
+                <label for="activityTitle">Title:</label>
+                <input type="text" id="activityTitle">
                 <label for="activityDuration">Duration (minutes):</label>
                 <input type="number" id="activityDuration">
                 <label for="activityDifficulty">Difficulty:</label>
@@ -442,10 +446,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="button" class="delete-button" onclick="deleteEvent()">Delete Event</button>
             </div>
         </form>
-        <?php else: ?>
-            <p>Error: Could not load event data.</p>
-            <a href="index.php">Back to Events</a>
-        <?php endif; ?>
     </div>
 </body>
 </html>
+<?php else: ?>
+    <p>Error: Could not load event data. Please check the event ID or try again later.</p>
+    <a href="index.php">Back to Events</a>
+<?php endif; ?>

@@ -21,14 +21,14 @@ app.use(express.json());
 app.use('/api', Router);
 
 // Serve event images
-const eventImagesPath = path.join(__dirname, './images');
+const eventImagesPath = path.join(__dirname, './images'); // Correct directory for event images
 app.use('/images', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*'); // Allow images to be accessed from anywhere
     next();
 }, express.static(eventImagesPath));
 
 // Serve wine images
-const wineImagesPath = path.join(__dirname, './images/wineimages');
+const wineImagesPath = path.join(__dirname, './images/wineimages'); // Correct directory for wine images
 app.use('/images/wineimages', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*'); // Allow images to be accessed from anywhere
     next();

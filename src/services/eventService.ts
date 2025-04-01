@@ -17,9 +17,9 @@ export async function createEvent(image: UploadedFile, eventData: {
     try {
         await connection.beginTransaction();
 
-        // Save image to wineimages folder
-        const uploadPath = path.join(__dirname, '../../images/wineimages/', image.name);
-        const imageUrl = `/images/wineimages/${image.name}`;
+        // Save image to the correct directory for event images
+        const uploadPath = path.join(__dirname, '../../images', image.name);
+        const imageUrl = `/images/${image.name}`;
         await image.mv(uploadPath);
 
         // Insert event
@@ -66,9 +66,9 @@ export async function editEvent(eventId: number, eventData: any) {
         let imageUrl = eventData.currentImageUrl;
         if (eventData.image) {
             const image = eventData.image as UploadedFile;
-            const uploadPath = path.join(__dirname, '../../images/wineimages/', image.name);
+            const uploadPath = path.join(__dirname, '../../images', image.name); // Updated to the correct directory for event images
             await image.mv(uploadPath);
-            imageUrl = `/images/wineimages/${image.name}`;
+            imageUrl = `/images/${image.name}`;
             
             console.log('Image uploaded to:', uploadPath);
         }
@@ -95,6 +95,31 @@ export async function editEvent(eventId: number, eventData: any) {
                 eventId
             ]
         );
+
+        // Update activities and materials
+        await connection.query('DELETE FROM activities WHERE eventId = ?', [eventId]);
+        for (const activity of eventData.activities) {
+            const [activityResult] = await connection.query(
+                `INSERT INTO activities (eventId, title, duration, difficulty)
+                VALUES (?, ?, ?, ?)`,
+                [
+                    eventId,
+                    activity.title,
+                    activity.duration,
+                    activity.difficulty
+                ]
+            );
+
+            const activityId = (activityResult as any).insertId;
+
+            for (const material of activity.materials) {
+                await connection.query(
+                    `INSERT INTO materials (activityId, name)
+                    VALUES (?, ?)`,
+                    [activityId, material]
+                );
+            }
+        }
 
         await connection.commit();
         return eventId;

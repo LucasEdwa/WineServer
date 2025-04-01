@@ -4,14 +4,14 @@ export default async function createTables() {
     const connection = await pool.getConnection();
     try {
         // Drop dependent tables first to avoid foreign key constraint errors
-        await connection.query(`DROP TABLE IF EXISTS materials`); // Drop child table first
-        await connection.query(`DROP TABLE IF EXISTS activities`); // Then drop parent table
+        await connection.query(`DROP TABLE IF EXISTS materials`);
+        await connection.query(`DROP TABLE IF EXISTS activities`);
         await connection.query(`DROP TABLE IF EXISTS wineCollection`);
         await connection.query(`DROP TABLE IF EXISTS Bookings`);
         await connection.query(`DROP TABLE IF EXISTS events`);
         await connection.query(`DROP TABLE IF EXISTS users`);
 
-        // Create tables with new schema
+        // Create tables with optimized schema
         await connection.query(`CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
             firstName VARCHAR(255) NOT NULL,
@@ -32,8 +32,6 @@ export default async function createTables() {
             capacity INT,
             price DECIMAL(10, 2),
             currentAttendees INT,
-            wineSelection JSON,
-            activities JSON,
             isPrivate BOOLEAN
         )`);
 
@@ -63,9 +61,9 @@ export default async function createTables() {
         await connection.query(`CREATE TABLE IF NOT EXISTS activities (
             id INT AUTO_INCREMENT PRIMARY KEY,
             eventId INT NOT NULL,
+            title VARCHAR(255) NOT NULL,
             duration INT NOT NULL,
             difficulty ENUM('beginner', 'intermediate', 'advanced') NOT NULL,
-            materials JSON,
             FOREIGN KEY (eventId) REFERENCES events(id) ON DELETE CASCADE
         )`);
 

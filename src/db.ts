@@ -1,6 +1,7 @@
 import pool from './connection';
 import dotenv from 'dotenv';
 import { TWineCollection, TActivity } from './models/types';
+import { title } from 'process';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ const events = [
                 description: 'A rich and buttery wine with notes of vanilla and oak.',
                 imageUrl: `${SERVER_URL}${IMAGES.wine1}`
             },
+            
             {
                 name: 'Merlot',
                 variety: 'Red',
@@ -49,16 +51,18 @@ const events = [
         ] as TWineCollection[],
         activities: [
             {
+                title: 'Wine and Paint',
                 duration: 60,
                 difficulty: 'beginner',
                 materials: ['Canvas', 'Paint', 'Brushes']
             },
             {
+                title: 'Wine and Cheese Pairing',
                 duration: 90,
                 difficulty: 'intermediate',
-                materials: ['Wine Glass', 'Notebook']
+                materials: ['Cheese Platter', 'Wine Glasses', 'Tasting Notes']
             }
-        ] as TActivity[]
+        ]
     }
 ];
 
@@ -68,11 +72,10 @@ export const insertEvents = async () => {
         await connection.beginTransaction();
 
         for (const event of events) {
-            // Insert event
             console.log(`Inserting event: ${event.title}`);
             const [eventResult] = await connection.query(
-                `INSERT INTO events (title, description, imageUrl, date, startTime, endTime, location, capacity, price, currentAttendees, wineSelection, activities, isPrivate)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO events (title, description, imageUrl, date, startTime, endTime, location, capacity, price, currentAttendees, isPrivate)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     event.title,
                     event.description,
@@ -84,8 +87,6 @@ export const insertEvents = async () => {
                     event.capacity,
                     event.price,
                     event.currentAttendees,
-                    JSON.stringify([]), // Placeholder for wineSelection
-                    JSON.stringify([]), // Placeholder for activities
                     event.isPrivate
                 ]
             );
@@ -111,24 +112,35 @@ export const insertEvents = async () => {
                 );
             }
 
-            // Insert activities
+            // Insert activities and materials
             for (const activity of event.activities) {
                 console.log(`Inserting activity for event: ${event.title}`);
-                await connection.query(
-                    `INSERT INTO activities (eventId, duration, difficulty, materials)
+                const [activityResult] = await connection.query(
+                    `INSERT INTO activities (eventId, title, duration, difficulty)
                     VALUES (?, ?, ?, ?)`,
                     [
                         eventId,
+                        activity.title,
                         activity.duration,
-                        activity.difficulty,
-                        JSON.stringify(activity.materials)
+                        activity.difficulty
                     ]
                 );
+
+                const activityId = (activityResult as any).insertId;
+
+                for (const material of activity.materials) {
+                    console.log(`Inserting material: ${material} for activity in event: ${event.title}`);
+                    await connection.query(
+                        `INSERT INTO materials (activityId, name)
+                        VALUES (?, ?)`,
+                        [activityId, material]
+                    );
+                }
             }
         }
 
         await connection.commit();
-        console.log('Events, wines, and activities inserted successfully.');
+        console.log('Events, wines, activities, and materials inserted successfully.');
     } catch (error) {
         await connection.rollback();
         console.error('Error inserting events:', error);

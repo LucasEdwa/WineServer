@@ -18,10 +18,10 @@ export type TEvent = {
     capacity: number;
     price: number;
     currentAttendees: number;
-    wineSelection: string;
-    activities: string;
+    wineCollection: TWineCollection[]; // Updated from wineSelection to wineCollection
+    activities: TActivity[];
     isPrivate: boolean;
-    isActive: boolean; // New attribute to indicate if the event is active
+    isActive: boolean;
 };
 
 export type TWineCollection = {
@@ -39,9 +39,17 @@ export type TWineCollection = {
 export type TActivity = {
     id?: number; // Optional for new entries
     eventId: number;
+    title: string; // Added title field
     duration: number;
     difficulty: 'beginner' | 'intermediate' | 'advanced';
-    materials: string[];
+    materials: TMaterial[];
+};
+
+export type TMaterial = {
+    id?: number; // Optional for new entries
+    activityId: number;
+    name: string;
+  
 };
 
 export type TBooking = {
