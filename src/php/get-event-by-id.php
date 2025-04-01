@@ -1,5 +1,7 @@
 <?php
-include_once 'navbar.php'; // Include navbar.php for the navbar
+require_once('functions.php'); // Include the functions file
+require_once('navbar.php'); // Include navbar.php for the navbar
+require_once('db.php'); // Include the reusable database connection
 
 renderNavbar(); // Render the navbar
 
@@ -10,55 +12,22 @@ $error = null;
 
 if (isset($_GET['id'])) {
     $eventId = intval($_GET['id']);
-    $conn = new mysqli('localhost', 'root', 'root', 'wine');
+    $conn = getDbConnection(); // Use the reusable connection function
 
-    if ($conn->connect_error) {
-        $error = 'Connection failed: ' . $conn->connect_error;
+    // Fetch event details
+    $event = fetchEventDetails($conn, $eventId); // Pass $conn as the first argument
+
+    if ($event) {
+        // Fetch wine collection
+        $wineCollection = fetchWineCollection($conn, $eventId); // Pass $conn as the first argument
+
+        // Fetch activities
+        $activities = fetchActivities($conn, $eventId); // Pass $conn as the first argument
     } else {
-        // Fetch event details
-        $stmt = $conn->prepare("SELECT * FROM events WHERE id = ?");
-        $stmt->bind_param("i", $eventId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows > 0) {
-            $event = $result->fetch_assoc();
-
-            // Fetch wine collection
-            $wineStmt = $conn->prepare("SELECT * FROM wineCollection WHERE eventId = ?");
-            $wineStmt->bind_param("i", $eventId);
-            $wineStmt->execute();
-            $wineResult = $wineStmt->get_result();
-            while ($wine = $wineResult->fetch_assoc()) {
-                $wineCollection[] = $wine;
-            }
-            $wineStmt->close();
-
-            // Fetch activities
-            $activityStmt = $conn->prepare("SELECT * FROM activities WHERE eventId = ?");
-            $activityStmt->bind_param("i", $eventId);
-            $activityStmt->execute();
-            $activityResult = $activityStmt->get_result();
-            while ($activity = $activityResult->fetch_assoc()) {
-                // Fetch materials for each activity
-                $materialsResult = $conn->query("SELECT name FROM materials WHERE activityId = " . $activity['id']);
-                $materials = [];
-                if ($materialsResult) {
-                    while ($material = $materialsResult->fetch_assoc()) {
-                        $materials[] = $material['name'];
-                    }
-                }
-                $activity['materials'] = $materials; // Ensure materials is always an array
-                $activities[] = $activity;
-            }
-            $activityStmt->close();
-        } else {
-            $error = 'Event not found.';
-        }
-
-        $stmt->close();
-        $conn->close();
+        $error = 'Event not found.';
     }
+
+    $conn->close(); // Close the connection after use
 } else {
     $error = 'No event ID provided.';
 }

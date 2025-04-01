@@ -1,5 +1,49 @@
 RewriteEngine On
 
+# Allow access to static files in the js directory
+RewriteCond %{REQUEST_URI} ^/src/js/
+RewriteRule ^ - [L]
+
+# Allow access to PHP files
+RewriteCond %{REQUEST_URI} \.php$
+RewriteRule ^ - [L]
+
+# Exclude API routes from being redirected
+RewriteCond %{REQUEST_URI} !^/api/
+
+# Redirect all other requests to router.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ router.php [QSA,L]
+
+---
+
+### Step 2: Test the File in the Browser
+1. Open your browser and navigate to:
+   ```
+   http://localhost:8888/src/js/eventFunctions.js
+   ```
+   - If the file loads successfully, the path is correct.
+   - If it returns a `404 Not Found` error, proceed to the next steps.
+
+---
+
+### Step 3: Verify Web Server Configuration
+Ensure your web server is configured to serve static files from the `/Users/lucaseduardo/wineServer/src/js` directory.
+
+#### For Apache (`.htaccess`):
+Ensure the `.htaccess` file in `/Users/lucaseduardo/wineServer/` contains the following rules to allow access to static files:
+
+RewriteEngine On
+
+# Allow access to static files in the js directory
+RewriteCond %{REQUEST_URI} ^/src/js/
+RewriteRule ^ - [L]
+
+# Allow access to PHP files
+RewriteCond %{REQUEST_URI} \.php$
+RewriteRule ^ - [L]
+
 # Exclude API routes from being redirected
 RewriteCond %{REQUEST_URI} !^/api/
 

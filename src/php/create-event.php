@@ -1,10 +1,11 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $conn = new mysqli('localhost', 'root', 'root', 'wine');
+require_once('navbar.php'); // Include navbar.php for the navbar
+require_once('db.php'); // Include the reusable database connection
 
-    if ($conn->connect_error) {
-        die('Connection failed: ' . $conn->connect_error);
-    }
+renderNavbar(); // Render the navbar
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $conn = getDbConnection(); // Use the reusable connection function
 
     // Define target directories
     $event_target_dir = "/Users/lucaseduardo/wineServer/src/images/";
@@ -152,82 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <title>Create Wine Event</title>
     <link rel="stylesheet" href="createEventStyle.css">
-    <script>
-        let wineList = [];
-        let activityList = [];
-
-        function addWine() {
-            const name = document.getElementById('wineName').value;
-            const variety = document.getElementById('wineVariety').value;
-            const year = document.getElementById('wineYear').value;
-            const region = document.getElementById('wineRegion').value;
-            const price = document.getElementById('winePrice').value;
-            const description = document.getElementById('wineDescription').value;
-
-            if (!name || !variety || !year || !region || !price || !description) {
-                alert('Please fill in all wine fields.');
-                return;
-            }
-
-            const wine = {
-                name,
-                variety,
-                year: parseInt(year),
-                region,
-                price: parseFloat(price),
-                description
-            };
-
-            wineList.push(wine);
-
-            const wineListElement = document.getElementById('wineList');
-            const listItem = document.createElement('li');
-            listItem.textContent = `${name} (${variety}, ${year}, ${region}) - $${price}`;
-            wineListElement.appendChild(listItem);
-
-            document.getElementById('wineName').value = '';
-            document.getElementById('wineVariety').value = '';
-            document.getElementById('wineYear').value = '';
-            document.getElementById('wineRegion').value = '';
-            document.getElementById('winePrice').value = '';
-            document.getElementById('wineDescription').value = '';
-
-            document.getElementById('wineCollection').value = JSON.stringify(wineList);
-        }
-
-        function addActivity() {
-            const title = document.getElementById('activityTitle').value;
-            const duration = document.getElementById('activityDuration').value;
-            const difficulty = document.getElementById('activityDifficulty').value;
-            const materials = document.getElementById('activityMaterials').value.split(',');
-
-            if (!title || !duration || !difficulty || materials.length === 0) {
-                alert('Please fill in all activity fields.');
-                return;
-            }
-
-            const activity = {
-                title,
-                duration: parseInt(duration),
-                difficulty,
-                materials
-            };
-
-            activityList.push(activity);
-
-            const activityListElement = document.getElementById('activityList');
-            const listItem = document.createElement('li');
-            listItem.textContent = `Title: ${title}, Duration: ${duration} mins, Difficulty: ${difficulty}, Materials: ${materials.join(', ')}`;
-            activityListElement.appendChild(listItem);
-
-            document.getElementById('activityTitle').value = '';
-            document.getElementById('activityDuration').value = '';
-            document.getElementById('activityDifficulty').value = 'beginner';
-            document.getElementById('activityMaterials').value = '';
-
-            document.getElementById('activities').value = JSON.stringify(activityList);
-        }
-    </script>
+    <script src="/js/eventFunctions.js" defer></script>
 </head>
 <body>
     <div class="form-container">

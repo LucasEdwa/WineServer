@@ -1,14 +1,11 @@
 <?php
 $NODE_SERVER = 'http://localhost:3000';
 
-// Database connection
-$conn = new mysqli('localhost', 'root', 'root', 'wine');
+require_once('db.php'); // Include the reusable database connection
+require_once('navbar.php'); // Include navbar.php for the navbar
 
-if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
-}
+$conn = getDbConnection(); // Use the reusable connection function
 
-include_once 'navbar.php'; // Include navbar.php for the navbar
 renderNavbar(); // Render the navbar
 
 // Get all events
