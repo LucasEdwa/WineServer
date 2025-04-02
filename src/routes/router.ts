@@ -6,6 +6,9 @@ import { format } from "date-fns"; // Import date-fns for date formatting
 import pool from "../connection";
 import { createEvent, editEvent, deleteEvent } from "../services/eventService";
 import { TBooking, TEvent, Error, TUser } from "../models/types";
+import { TWineCollection } from "../models/types";
+import { TActivity } from "../models/types";
+import { TMaterial } from "../models/types";
 
 const router = express.Router();
 
@@ -32,6 +35,19 @@ router.post(
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
+
+      // Check if the email is already associated with the event
+      const [existingBooking] = await connection.query(
+        `SELECT * FROM Bookings 
+         JOIN users ON Bookings.userId = users.id 
+         WHERE users.email = ? AND Bookings.eventId = ?`,
+        [userProps.email, eventId]
+      );
+
+      if ((existingBooking as any).length > 0) {
+        res.status(400).send({ message: "Email already exists for this event" });
+        return;
+      }
 
       // Retrieve event details
       const [eventResult] = await connection.query(
@@ -155,7 +171,10 @@ router.get(
     const connection = await pool.getConnection();
     try {
       const [results] = await connection.query(
-        "SELECT title, date, startTime, endTime, location FROM events"
+        `SELECT 
+          id, title, description, imageUrl, date, startTime, endTime, location, 
+          capacity, price 
+         FROM events`
       );
       res.status(200).send(results as TEvent[]);
     } catch (error) {
@@ -166,21 +185,76 @@ router.get(
     }
   }
 );
-
+// filepath: /Users/lucaseduardo/wineServer/src/routes/router.ts
 router.get(
   "/getEventById/:eventId",
-  async (req: Request, res: Response<TEvent[] | Error>): Promise<void> => {
+  async (req: Request, res: Response<TEvent | { error: string }>): Promise<void> => {
     const { eventId } = req.params;
     const connection = await pool.getConnection();
     try {
-      const [results] = await connection.query(
+      const [eventResults] = await connection.query(
         "SELECT * FROM events WHERE id = ?",
         [eventId]
       );
-      res.status(200).send(results as TEvent[]);
+
+      if ((eventResults as TEvent[]).length === 0) {
+        res.status(404).send({ error: "Event not found" });
+        return;
+      }
+
+      const event = (eventResults as TEvent[])[0];
+
+      // Fetch wineCollection for the event
+      const [wineResults] = await connection.query(
+        "SELECT * FROM wineCollection WHERE eventId = ?",
+        [eventId]
+      );
+
+      // Fetch activities for the event
+      const [activityResults] = await connection.query(
+        "SELECT * FROM activities WHERE eventId = ?",
+        [eventId]
+      );
+
+      event.wineCollection = (wineResults as TWineCollection[]) || [];
+      event.activities = (activityResults as TActivity[]) || [];
+
+      // Fetch materials for each activity using Promise.all
+      event.activities = await Promise.all(
+        event.activities.map(async (activity: TActivity) => {
+          const [materialResults] = await connection.query(
+            "SELECT * FROM materials WHERE activityId = ?",
+            [activity.id]
+          );
+          activity.materials = (materialResults as TMaterial[]) || [];
+          return activity;
+        })
+      );
+
+      res.status(200).send(event);
     } catch (error) {
       console.error("Error:", error);
       res.status(500).send({ error: "Error retrieving event" });
+    } finally {
+      connection.release();
+    }
+  }
+);
+router.delete(
+  "/api/deleteEvent/:eventId", // Update the route path to match the frontend request
+  async (req: Request, res: Response<{ message: string } | Error>): Promise<void> => {
+    const { eventId } = req.params;
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.query("DELETE FROM events WHERE id = ?", [eventId]);
+      await connection.query("DELETE FROM Bookings WHERE eventId = ?", [eventId]);
+      await connection.commit();
+      res.status(200).send({ message: "Event deleted successfully" });
+    } catch (error) {
+      console.error("Error:", error);
+      await connection.rollback();
+      res.status(500).send({ error: "Error deleting event" });
     } finally {
       connection.release();
     }

@@ -125,7 +125,7 @@ function removeActivity(index) {
 // Delete an event
 function deleteEvent(id) {
     if (confirm("Are you sure you want to delete this event?")) {
-        fetch(`/api/deleteEvent/${id}`, {
+        fetch(`/api/deleteEvent/${id}`, { // Ensure the endpoint matches the backend route
             method: "DELETE",
         })
             .then(response => {

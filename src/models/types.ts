@@ -17,7 +17,6 @@ export type TEvent = {
     location: string;
     capacity: number;
     price: number;
-    currentAttendees: number;
     wineCollection: TWineCollection[]; // Updated from wineSelection to wineCollection
     activities: TActivity[];
     isPrivate: boolean;

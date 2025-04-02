@@ -13,6 +13,7 @@ function fetchEventDetails($conn, $eventId) {
 
 // Function to fetch wine collection
 function fetchWineCollection($conn, $eventId) {
+    error_log("Fetching wine collection for Event ID: $eventId");
     $stmt = $conn->prepare("SELECT * FROM wineCollection WHERE eventId = ?");
     $stmt->bind_param("i", $eventId);
     $stmt->execute();
@@ -31,6 +32,7 @@ function fetchWineCollection($conn, $eventId) {
 
 // Function to fetch activities and their materials
 function fetchActivities($conn, $eventId) {
+    error_log("Fetching activities for Event ID: $eventId");
     $stmt = $conn->prepare("SELECT * FROM activities WHERE eventId = ?");
     $stmt->bind_param("i", $eventId);
     $stmt->execute();

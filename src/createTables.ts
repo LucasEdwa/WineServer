@@ -11,6 +11,7 @@ export default async function createTables() {
         await connection.query(`DROP TABLE IF EXISTS events`);
         await connection.query(`DROP TABLE IF EXISTS users`);
 
+
         // Create tables with optimized schema
         await connection.query(`CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
