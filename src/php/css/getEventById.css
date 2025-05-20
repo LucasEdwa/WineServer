@@ -1,0 +1,64 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.event-title {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.event-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.event-details p {
+    margin: 5px 0;
+}
+
+.error-message {
+    color: red;
+    font-weight: bold;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    text-decoration: none;
+    color: #007BFF;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.section-title {
+    font-size: 20px;
+    margin-top: 20px;
+}
+
+.wine-item {
+    list-style-type: none;
+    margin-bottom: 10px;
+}
+
+.activity-item {
+    margin-bottom: 10px;
+    list-style: none;
+    
+}

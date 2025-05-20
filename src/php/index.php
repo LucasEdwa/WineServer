@@ -67,15 +67,15 @@ if (!$result) {
                 <p>Click the button below to create a new event.</p>
             </div>
             <div class="event-actions">
-                <a href="create-event.php" class="edit-button">Create Event</a>
+                <a href="/create-event" class="edit-button">Create Event</a>
             </div>
         </div>
         <?php while($event = $result->fetch_assoc()): ?>
             <div class="event-card" data-date="<?php echo htmlspecialchars($event['date']); ?>">
                 <?php 
-                    $imageUrl = $NODE_SERVER . $event['imageUrl'];
+                    $imageUrl = 'http://localhost:3000' . htmlspecialchars($event['imageUrl']);
                 ?>
-                <img src="<?php echo $imageUrl; ?>" alt="<?php echo htmlspecialchars($event['title']); ?>" class="event-image">
+                <img class="event-image" src="<?php echo $imageUrl; ?>" alt="Event image">
                 <h2 class="event-title"><?php echo htmlspecialchars($event['title']); ?></h2>
                 <div class="event-details">
                     <p><?php echo htmlspecialchars($event['description']); ?></p>

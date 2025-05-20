@@ -171,21 +171,31 @@ router.get(
     const connection = await pool.getConnection();
     try {
       const [results] = await connection.query(
-        `SELECT 
-          id, title, description, imageUrl, date, startTime, endTime, location, 
-          capacity, price 
-         FROM events`
+        'SELECT id, title, description, imageUrl, date, startTime, endTime, location, capacity, price FROM events'
       );
-      res.status(200).send(results as TEvent[]);
+
+      if (!Array.isArray(results)) {
+        throw new Error('Invalid response format');
+      }
+
+      // Add the server URL to image paths
+      const events = (results as TEvent[]).map(event => ({
+        ...event,
+        imageUrl: event.imageUrl.startsWith('http') 
+          ? event.imageUrl 
+          : `http://localhost:3000${event.imageUrl}` // Add server URL to relative paths
+      }));
+
+      res.status(200).send(events);
     } catch (error) {
-      console.error("Error:", error);
-      res.status(500).send({ error: "Error retrieving events" });
+      console.error('Error:', error);
+      res.status(500).send({ error: 'Error retrieving events' });
     } finally {
       connection.release();
     }
   }
 );
-// filepath: /Users/lucaseduardo/wineServer/src/routes/router.ts
+
 router.get(
   "/getEventById/:eventId",
   async (req: Request, res: Response<TEvent | { error: string }>): Promise<void> => {
@@ -240,6 +250,7 @@ router.get(
     }
   }
 );
+
 router.delete(
   "/api/deleteEvent/:eventId", // Update the route path to match the frontend request
   async (req: Request, res: Response<{ message: string } | Error>): Promise<void> => {
