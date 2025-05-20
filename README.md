@@ -64,24 +64,18 @@ export default async function createTables() {
 
 
 
-## Swagger
-
-http://localhost:3000/api-docs
-
-![Swagger image](./src/images/SwaggerUi.png)
-
 
 ## PHP Create event
 
 http://localhost:8888/wine-api/create-event
 
-![PHPMyAdmin image](./src/images/phpAdmin.png)
+![PHPMyAdmin image](./images/phpAdmin.png)
 
 ## PHP event list
 
 http://localhost:8888/wine-api/
 
-![PHPMyAdmin image](./src/images/database.png)
+![PHPMyAdmin image](./images/database.png)
 
 
 
@@ -89,7 +83,7 @@ http://localhost:8888/wine-api/
 
 http://localhost:8888/wine-api/edit-event
 
-![PHPMyAdmin image](./src/images/editEvent.png)
+![PHPMyAdmin image](./images/editEvent.png)
 
 
 
